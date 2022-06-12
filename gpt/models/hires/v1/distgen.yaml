@@ -1,0 +1,30 @@
+n_particle: 2000
+random_type: hammersley
+
+start:
+  type: cathode
+  MTE:
+    units: meV
+    value: 300
+    
+total_charge:
+  units: pC
+  value: 1
+
+r_dist:
+  n_sigma_cutoff: 3
+  sigma_xy:
+    value: 0.070
+    units: mm
+  type: radial_gaussian
+  
+t_dist:
+  type: gaussian
+  avg_t:
+    units: ps
+    value: 0
+  sigma_t:
+    units: ps
+    value: 3
+  n_sigma_cutoff: 3
+  

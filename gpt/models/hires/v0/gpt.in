@@ -1,0 +1,434 @@
+# Nominal UED case, 
+
+
+############## Define initial variables ###############
+# Initial beam
+nps = 2000; # [dimensionless] Number of simulation macroparticles
+Spotsize = 70e-6; # [m]  RMS spot size in x direction
+Ratio = 1; # [dimensionless]  (RMS spot size y)/(RMS spot size x)
+DistAngle = 0; # [radians] #rotation angle for initial distribution
+MTE = 0.3; # [eV] Mean transverse energy
+ztime = 3e-12; # [s] RMS bunch length
+gunFac = 0.973; # [dimensionless] Energy adjustment factor
+phi = -9; # [degrees] Gun phase
+Qtot = 0.0; # [C] Bunch charge
+rDepthOpt = 18; # Cathode Recession depth option (18 corresponds to -850um)
+
+# Solenoid 1
+scurr1 = 4.7; # [A]  Solenoid1 current
+Sol1Q1CurrMult = -0.6; # [dimensionless]  scaling factor for quad error in solenoid 1
+Sol1SQ1CurrMult = -0.25; # [dimensionless]  scaling factor for skew quad error in solenoid 1
+Sol1Q2CurrMult = 0.6; # [dimensionless]  scaling factor for quad error in solenoid 1
+Sol1SQ2CurrMult = 0.25; # [dimensionless]  scaling factor for skew quad error in solenoid 1
+Q1CurrAdd = 0; # [A]  Normal quad corrector at beginning of solenoid 1
+Q2CurrAdd = 0; # [A]  Normal quad corrector at end of solenoid 1
+SQ1CurrAdd = 0; # [A]  Skew quad corrector at beginning of solenoid 1
+SQ2CurrAdd = 0; # [A]  Skew quad corrector at end of solenoid 1
+sol1CorrectFac = 1.01; # [dimensionless] scaling factor for solenoid strength
+
+# Buncher
+Eb=0; # [MV/m] Buncher peak field
+phi2=-101.6; # [deg] Buncher phase
+
+# Solenoid 2
+scurr2 = 0; # [A]  Solenoid2 current
+Sol2Q1CurrMult = 0.6; # [dimensionless]  scaling factor for quad error in solenoid 2
+Sol2SQ1CurrMult = 0.25; # [dimensionless]  scaling factor for skew quad error in solenoid 2
+Sol2Q2CurrMult = -0.6; # [dimensionless]  scaling factor for quad error in solenoid 2
+Sol2SQ2CurrMult = -0.25; # [dimensionless]  scaling factor for skew quad error in solenoid 2
+sol2CorrectFac = 1.01; # [dimensionless]  scaling factor for solenoid strength
+
+# Quadrupoles 
+qcurr1 = 5.53; # [A]  Quad 1 current
+qcurr2 = -6.68; # [A]  Quad 2 current
+qcurr3 = 5.53; # [A]  Quad 3 current
+qcurr4 = 0.0; # [A]  Quad 4 current
+qcurr5 = 0.0; # [A]  Quad 5 current
+qcurr6 = 0.0; # [A]  Quad 6 current
+bquad = 197.6; # [1/m] First order fringe field
+
+# Dipoles
+dip1curr = 5.19925; # [A] Dipole 1 current
+Dip1d1 = 0 ; # [m], starting position of fringe field 
+Dip1b1 = 69.1438;#Solution with b2:71.7671 # [m^-1], 1st order slope
+Dip1b2 = 0;#Solution with b2:-364.7837; # [m^-2], 2nd order slope
+dip1AngleDelta1 = 0; # [radians] Correction to entrance angle
+dip1AngleDelta2 = 0; # [radians] Correction to exit angle
+
+dip2curr = 5.1473; # [A] Dipole 2 current
+Dip2d1 = 0 ; # [m], starting position of fringe field 
+Dip2b1 = 69.1438;#Solution with b2:71.7671 # [m^-1], 1st order slope
+Dip2b2 = 0;#Solution with b2:-364.7837; # [m^-2], 2nd order slope
+dip2AngleDelta1 = 0; # [radians] Correction to entrance angle
+dip2AngleDelta2 = 0; # [radians] Correction to exit angle
+
+
+#Aperture
+pinhole1 = 1; # boolean for first pinhole
+Ra1 = 250e-6; # [m] Pinhole radius
+
+#Screens
+SCam2 = 0; # boolean for SCam2
+UCam1 = 0; # boolean for UCam1
+sampleCam = 0; # boolean for sample camera
+detectorCam = 0; # boolean for detector camera
+tall = 1; # boolean for all screens
+
+sec2 = 1; # boolean for second section of the beamline
+sec3 = 1; # boolean for third section of the beamline
+
+
+############## Set time step and accuracy ############## 
+
+dtmaxt(8.5e-9,21e-9,1e-12);
+
+accuracy (7,7);
+
+############## Start initial beam distribution ############## 
+	# Start nps particles
+setparticles("beam",nps,me,qe,Qtot) ;
+setxdist("beam","g",0, Spotsize,3,3) ;
+setydist("beam","g",0, Spotsize*Ratio,3,3) ;
+settdist("beam","g",0, ztime ,3 ,3);
+if(DistAngle!=0) {
+settransform("wcs", 0,0,0, cos(DistAngle),-sin(DistAngle),0, sin(DistAngle),cos(DistAngle),0,"beam");
+}
+#momentum intial dist
+E0=MTE/2;  # Inital Mean Transverse Energy
+G   = 1-q*E0/(m*c*c) ;	# Corresponding Gamma 2.4676;#
+GB  = sqrt(G^2-1) ;	# Corresponding Gamma*Beta
+setGBzdist("beam","g",0,GB,0,3);
+setGBxdist("beam","g",0,GB,3,3);
+setGBydist("beam","g",0,GB,3,3);
+
+#Add space charge effects with the Cathode
+if(Qtot!=0) spacecharge3Dmesh("Cathode");
+
+############## VHF GUN ############## 
+frf=185.714e6; # [Hz]
+wrf=2*pi*frf;  # [rad]
+
+
+# if (rDepthOpt==0){
+# Eg=-0.988438958190918;
+#    gunFile="Ez_0um.gdf";
+# }
+# 
+# if (rDepthOpt==1){
+# Eg=-0.988438958190918;
+# gunFile="Ez_0um.gdf";
+# }
+# if (rDepthOpt==2){
+# Eg=-0.988161442370137;
+# gunFile="Ez_-50um.gdf";
+# }
+# if (rDepthOpt==3){
+# Eg=-0.987884004465174;
+# gunFile="Ez_-100um.gdf";
+# }
+# if (rDepthOpt==4){
+# Eg=-0.987600614888698;
+# gunFile="Ez_-150um.gdf";
+# }
+# if (rDepthOpt==5){
+# Eg=-0.987323334442624;
+# gunFile="Ez_-200um.gdf";
+# }
+# if (rDepthOpt==6){
+# Eg=-0.987040105702885;
+# gunFile="Ez_-250um.gdf";
+# }
+# if (rDepthOpt==7){
+# Eg=-0.986762982626332;
+# gunFile="Ez_-300um.gdf";
+# }
+# if (rDepthOpt==8){
+# Eg=-0.986479914632049;
+# gunFile="Ez_-350um.gdf";
+# }
+# if (rDepthOpt==9){
+# Eg=-0.986202948835704;
+# gunFile="Ez_-400um.gdf";
+# }
+# if (rDepthOpt==10){
+# Eg=-0.985920041495645;
+# gunFile="Ez_-450um.gdf";
+# }
+# if (rDepthOpt==11){
+# Eg=-0.985631197733488;
+# gunFile="Ez_-500um.gdf";
+# }
+# if (rDepthOpt==12){
+# Eg=-0.985342438593527;
+# gunFile="Ez_-550um.gdf";
+# }
+# if (rDepthOpt==13){
+# Eg=-0.985059778103941;
+# gunFile="Ez_-600um.gdf";
+# }
+# if (rDepthOpt==14){
+# Eg=-0.984771186372074;
+# gunFile="Ez_-650um.gdf";
+# }
+# if (rDepthOpt==15){
+# Eg=-0.984482679188567;
+# gunFile="Ez_-700um.gdf";
+# }
+# if (rDepthOpt==16){
+# Eg=-0.984194256528648;
+# gunFile="Ez_-750um.gdf";
+# }
+# if (rDepthOpt==17){
+# Eg=-0.983899911322533;
+# gunFile="Ez_-800um.gdf";
+# }
+# if (rDepthOpt==18){
+# Eg=-0.983599648898423;
+# gunFile="Ez_-850um.gdf";
+# }
+# if (rDepthOpt==19){
+# Eg=-0.983311484938785;
+# gunFile="Ez_-900um.gdf";
+# }
+# if (rDepthOpt==20){
+# Eg=-0.983011402088157;
+# gunFile="Ez_-950um.gdf";
+# }
+# if (rDepthOpt==21){
+# Eg=-0.982711410815547;
+# gunFile="Ez_-1000um.gdf";
+# }
+# if (rDepthOpt==22){
+# Eg=-0.982411511093008;
+# gunFile="Ez_-1050um.gdf";
+# }
+# if (rDepthOpt==23){
+# Eg=-0.982099710564585;
+# gunFile="Ez_-1100um.gdf";
+# }
+# if (rDepthOpt==24){
+# Eg=-0.981799997518148;
+# gunFile="Ez_-1150um.gdf";
+# }
+# if (rDepthOpt==25){
+# Eg=-0.981488391073623;
+# gunFile="Ez_-1200um.gdf";
+# }
+#  if (rDepthOpt==26){
+# Eg=-0.981180459228516;
+# gunFile="Ez_-1250um.gdf";
+# }
+# if (rDepthOpt==27){
+# Eg=-0.980869049414796;
+# gunFile="Ez_-1300um.gdf";
+# }
+# if (rDepthOpt==28){
+# Eg=-0.980545764938060;
+# gunFile="Ez_-1350um.gdf";
+# }
+# if (rDepthOpt==29){
+# Eg=-0.980240541341796;
+# gunFile="Ez_-1400um.gdf";
+# }
+# if (rDepthOpt==30){
+# Eg=-0.979917464014938;
+# gunFile="Ez_-1450um.gdf";
+# }
+# if (rDepthOpt==31){
+# Eg=-0.979600474112638;
+# gunFile="Ez_-1500um.gdf";
+# }
+# if (rDepthOpt==32){
+# Eg=-0.988712480475844;
+# gunFile="Ez_50um.gdf";
+# }
+# if (rDepthOpt==33){
+# Eg=-0.988990073091212;
+# gunFile="Ez_100um.gdf";
+# }
+# if (rDepthOpt==34){
+# Eg=-0.989267743643960;
+# gunFile="Ez_150um.gdf";
+# }
+# if (rDepthOpt==35){
+# Eg=-0.989539454144839;
+# gunFile="Ez_200um.gdf";
+# }
+# if (rDepthOpt==36){
+# Eg=-0.989817278942755;
+# gunFile="Ez_250um.gdf";
+# }
+# if (rDepthOpt==37){
+# Eg=-0.990095181743240;
+# gunFile="Ez_300um.gdf";
+# }
+# if (rDepthOpt==38){
+# Eg=-0.990373162568192;
+# gunFile="Ez_350um.gdf";
+# }
+# if (rDepthOpt==39){
+# Eg=-0.990651221439518;
+# gunFile="Ez_400um.gdf";
+# }
+# if (rDepthOpt==40){
+# Eg=-0.990917265468713;
+# gunFile="Ez_450um.gdf";
+# }
+# if (rDepthOpt==41){
+# Eg=-0.991195477103305;
+# gunFile="Ez_500um.gdf";
+# }
+#map1D_TM("wcs","z",0,gunFile,"z","Ez",Eg*gunFac,phi/deg,wrf);
+
+
+# if (rDepthOpt==18)
+Eg=-0.983599648898423;
+map1D_TM("wcs","z",0,"Ez_-850um.gdf","z","Ez",Eg*gunFac,phi/deg,wrf);
+
+
+############## Buncher ############## 
+
+bDist=0.88649;
+frf2=1.3e9;
+wrf2=2*pi*frf2;
+#map1D_TM("wcs","z",bDist,"rfbuncher.gdf","z","Ez",Eb,phi2/deg,wrf2);
+map1D_TM("wcs", 0, 0, bDist,  1, 0, 0, 0, 1, 0,"rfbuncher.gdf","z","Ez",Eb,phi2/deg,wrf2);
+
+############## Solenoid 1 ############## 
+
+peakFieldTesla1 =-342e-4*scurr1/3.98*sol1CorrectFac; # [T], scale
+Zsol1=0.29594;
+R=0.0266;
+L=0.1871;
+cosphi = cos(pi/4);
+sinphi = sin(pi/4);
+nI=peakFieldTesla1/1.9236;
+map1D_B("wcs","z",Zsol1,"Solenoid_lowfloor.gdf","z","Bz",peakFieldTesla1);
+
+#Calculate quad moments
+Q1Curr=Q1CurrAdd+Sol1Q1CurrMult*scurr1;
+Q2Curr=Q2CurrAdd+Sol1Q2CurrMult*scurr1;
+SQ1Curr=SQ1CurrAdd+Sol1SQ1CurrMult*scurr1;
+SQ2Curr=SQ2CurrAdd+Sol1SQ2CurrMult*scurr1;
+
+quadrupole( "wcs","z", Zsol1-L/2, 0.045, 0.733/100*Q1Curr); #, 142.62);
+quadrupole( "wcs","z", Zsol1+L/2, 0.045, 0.733/100*Q2Curr); #, 142.62);
+quadrupole("wcs", 0,0,Zsol1-L/2, cosphi,-sinphi,0, sinphi,cosphi,0, 0.045, 0.733/100*SQ1Curr); #, 142.62);
+quadrupole("wcs", 0,0,Zsol1+L/2, cosphi,-sinphi,0, sinphi,cosphi,0, 0.045, 0.733/100*SQ2Curr); #, 142.62);
+
+############## Pinhole ################
+
+if (pinhole1==1){
+drift("wcs","z",1.45273,2e-3,Ra1);
+}
+
+if (sec2==1) {
+	tcontinue(17.1e-9);
+	tmax=17.2e-9;
+	############## Solenoid 2 ################
+	peakFieldTesla2 =356e-4*scurr2/3.88*sol2CorrectFac; # [T], scale
+	Zsol2=1.71437;
+	nI=peakFieldTesla1/1.9236;
+	map1D_B("wcs","z",Zsol2,"Solenoid_lowfloor.gdf","z","Bz",peakFieldTesla2);
+	#Bzsolenoid("wcs","z",Zsol1,R,L,nI);
+
+	#since there are no correctors hooked up at this time, not enabled here
+
+	quadrupole( "wcs","z", Zsol2-L/2, 0.045, 0.733/100*Sol2Q1CurrMult*scurr2); #, 142.62);
+	quadrupole( "wcs","z", Zsol2+L/2, 0.045, 0.733/100*Sol2Q2CurrMult*scurr2); #, 142.62);
+	quadrupole("wcs", 0,0,Zsol2-L/2, cosphi,-sinphi,0, sinphi,cosphi,0, 0.045, 0.733/100*Sol2SQ1CurrMult*scurr2); #, 142.62);
+	quadrupole("wcs", 0,0,Zsol2+L/2, cosphi,-sinphi,0, sinphi,cosphi,0, 0.045, 0.733/100*Sol2SQ2CurrMult*scurr2); #, 142.62);
+
+
+	############## 1st dipole ################
+
+	## dipole
+	Bfield =0.01902623399*dip1curr/5.19925; # [T]
+
+	arclength = 0.2057;#from radiabeam measurements
+	angle = 1.04719755;# 60 degrees
+	rbend = arclength/angle; #0.15552 m
+
+	zdipole1=2.157399424;#2.1574;
+
+	ccs("wcs", 0,0,zdipole1, cos(angle),0,sin(angle), 0,1,0, "bend1") ;
+	sectormagnet("wcs","bend1",rbend,Bfield,angle/2+dip1AngleDelta1,angle/2+dip1AngleDelta2, Dip1d1, Dip1b1, Dip1b2) ;
+
+	############## Quads in dogleg ################
+
+	z1stquad = 0.431399424;#drift6+drift4+extradipole;
+	z2ndquad = 0.580189424;#z1stquad+dquad;
+	z3rdquad = 0.730199424;#z2ndquad+dquad;
+
+	bquad=197.6;
+	Lquad=0.0604758;
+	grad1=-0.11656*qcurr1;
+	grad2=-0.11656*qcurr2;
+	grad3=-0.11656*qcurr3;
+
+	quadrupole("bend1","z",z1stquad,Lquad, grad1); #,bquad);
+	quadrupole("bend1","z",z2ndquad,Lquad, grad2); #,bquad);
+	quadrupole("bend1","z",z3rdquad,Lquad, grad3); #,bquad);
+}
+
+if (sec3==1){
+	tcontinue(21e-9);
+	tmax=21.1e-9;
+	############## 2nd dipole ################
+
+	## dipole
+	Bfield =0.01893310393*dip2curr/5.1473; # [T]
+
+	arclength = 0.2067;#from radiabeam measurements
+	angle = 1.04719755;# 60 degrees
+	rbend = arclength/angle; #0.15552 m
+
+	zdipole2=1.162373848;
+
+	ccs("bend1", 0,0,zdipole2, cos(angle),0,-sin(angle), 0,1,0, "straight") ;
+
+	sectormagnet("bend1","straight",rbend,Bfield,angle/2+dip2AngleDelta1,angle/2+dip2AngleDelta2, Dip2d1, Dip2b1, Dip2b2) ;
+
+	############## Quads after dogleg ################
+
+	#drift5 = extradipole+0.25726;
+	z4thquad = 0.347054424;
+	z5thquad = 0.497064424;
+	z6thquad = 0.647074424;
+
+	grad4=-0.11656*qcurr4;
+	grad5=-0.11656*qcurr5;
+	grad6=-0.11656*qcurr6;
+
+	quadrupole("straight","z",z4thquad,Lquad, grad4); #,bquad);
+	quadrupole("straight","z",z5thquad,Lquad, grad5); #,bquad);
+	quadrupole("straight","z",z6thquad,Lquad, grad6); #,bquad);
+
+}
+
+if (SCam2==1) {
+	screen("wcs","I",1.45273);
+}
+if (UCam1==1) {
+	screen("bend1","I",0.968799424,"bend1");
+}
+if (sampleCam==1) {
+	screen("straight","I",1.350460424,"straight");
+}
+if (detectorCam==1) {
+	screen("straight","I",2.271804424,"straight");
+}
+
+if(tall==1){
+	screen("straight","I",0.1,2.3,0.01,"straight");
+	
+	screen("bend1","I",0.1,zDipole2-0.1,0.01,"bend1");
+	screen("wcs","I",0.05,zDipole1-0.1,0.01);
+}
+pp(sec2,sec3,nps);
+
+
+# Add tout
+tmax = 10/299792458;
+Ntout = 100;
+tout(0, tmax, tmax/Ntout);
